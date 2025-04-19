@@ -1,0 +1,22 @@
+# Exclude Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Exclude virtual environments
+venv/
+env/
+
+# Exclude editor and IDE files
+.vscode/
+.idea/
+
+# Exclude Git metadata
+.git/
+.gitignore
+.github
+
+# Exclude Docker artifacts
+.dockerignore
+*.tar
+*.log
