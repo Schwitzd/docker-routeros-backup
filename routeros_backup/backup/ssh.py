@@ -10,7 +10,7 @@ settings = Settings()
 
 def generate_backup_name() -> str:
     """Generate a backup filename based on current date."""
-    return f"routeros-{datetime.now(timezone.utc).date()}.backup"
+    return f"{settings.backupname_prefix}-{datetime.now(timezone.utc).date()}.backup"
 
 
 def create_ssh_client() -> paramiko.SSHClient:
