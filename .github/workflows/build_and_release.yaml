@@ -1,0 +1,82 @@
+name: Build & Publish Docker Image
+
+env:
+  DOCKERHUB_TAG: "schwitzd/routeros-backup"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Capture Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.semantic_release.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Semantic-Release
+        run: npm install -g semantic-release @semantic-release/release-notes-generator @semantic-release/git @semantic-release/github semantic-release-gha-output commit-analyzer-fail-on-no-release
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run Semantic-Release and Capture Version
+        id: semantic_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npx semantic-release --ci
+
+      - name: Save Version to File
+        run: |
+          echo "${{ steps.semantic_release.outputs.version }}" > assets/version.txt
+          git add assets/version.txt
+          git commit -m "chore(release): update version to ${{ steps.semantic_release.outputs.version }}"
+          git push origin main
+
+#  release:
+#    name: Release Docker Image
+#    runs-on: ubuntu-latest
+#    needs: build
+#    steps:
+#      - name: Checkout
+#        uses: actions/checkout@v4
+#
+#      - name: Set up QEMU
+#        uses: docker/setup-qemu-action@v3
+#
+#      - name: Set up Docker Buildx
+#        uses: docker/setup-buildx-action@v3
+#
+#      - name: Login to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+#          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+#
+#      - name: Build and Push Docker Image
+#        uses: docker/build-push-action@v5
+#        with:
+#          push: true
+#          build-args: VERSION=${{ needs.build.outputs.version }}
+#          tags: |
+#            ${{ env.DOCKERHUB_TAG }}:latest
+#            ${{ env.DOCKERHUB_TAG }}:${{ needs.build.outputs.version }}
+#          platforms: linux/amd64,linux/arm64
+#
+#      - name: Update Docker Hub Description
+#        uses: peter-evans/dockerhub-description@v4
+#        with:
+#          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+#          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+#          repository: ${{ env.DOCKERHUB_TAG }}
+#          short-description: ${{ github.event.repository.description }}
+#          readme-filepath: ./README.md
+#          enable-url-completion: true
+#
