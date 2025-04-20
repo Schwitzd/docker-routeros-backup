@@ -1,12 +1,13 @@
+from pathlib import Path
+from typing import Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 class Settings(BaseSettings):
     # MikroTik SSH access
     router_host: str = Field(..., env="ROUTER_HOST")
     router_user: str = Field(..., env="ROUTER_USER")
-    ssh_key_path: str = Field(..., env="SSH_KEY_PATH")
+    ssh_key_path: Path = Field(..., env="SSH_KEY_PATH")
     backup_password: str = Field(..., env="BACKUP_PASSWORD")
 
     # S3-compatible storage
