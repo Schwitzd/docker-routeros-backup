@@ -31,10 +31,10 @@ def create_ssh_client() -> paramiko.SSHClient:
 
 def run_backup_command(ssh: paramiko.SSHClient, backup_name: str):
     """Run the MikroTik backup command."""
-    command = f"/system backup save name={backup_name} password={settings.backup_password}"
+    command = f'/system backup save name={backup_name} password="{settings.backup_password}"'
     logger.info("Running backup command: %s", command)
     stdin, stdout, stderr = ssh.exec_command(command)
-    stdout.channel.recv_exit_status()  # Wait for command to complete
+    stdout.channel.recv_exit_status()
 
     err_output = stderr.read().decode()
     if err_output:
@@ -47,9 +47,23 @@ def download_backup_file(ssh: paramiko.SSHClient, backup_name: str) -> Path:
     remote_path = f"/{backup_name}"
     local_path = Path(f"/tmp/{backup_name}")
 
-    logger.info("Downloading backup file from %s to %s", remote_path, local_path)
-    sftp.get(remote_path, str(local_path))
-    sftp.close()
+    logger.info("Attempting to download backup file from %s to %s", remote_path, local_path)
+
+    try:
+        sftp.get(remote_path, str(local_path))
+        logger.info("Download completed successfully: %s", local_path)
+    except FileNotFoundError:
+        logger.error("Backup file not found on router: %s", remote_path)
+        raise
+    except PermissionError:
+
+        logger.error("Permission denied when accessing: %s", remote_path)
+        raise
+    except Exception as e:
+        logger.exception("Unexpected error while downloading backup file: %s", e)
+        raise
+    finally:
+        sftp.close()
 
     return local_path
 
