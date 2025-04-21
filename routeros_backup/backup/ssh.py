@@ -71,13 +71,29 @@ class RouterOSBackup:
             sftp.close()
 
         return local_path
+    
+    def cleanup_remote_backup(self):
+        """Remove the backup file from the MikroTik router to free up space."""
+        command = f'/file remove {self.backup_name}'
+        logger.info("Cleaning up remote backup file: %s", self.backup_name)
+
+        stdin, stdout, stderr = self.ssh.exec_command(command)
+        stdout.channel.recv_exit_status()
+
+        err_output = stderr.read().decode()
+        if err_output:
+            logger.warning("Failed to delete remote backup file: %s", err_output.strip())
+        else:
+            logger.info("Remote backup file deleted successfully.")
 
     def perform(self) -> Path:
         """Main entrypoint: connect, create backup, and download it."""
         self.connect()
         try:
             self.run_backup_command()
-            return self.download_backup_file()
+            local_path = self.download_backup_file()
+            self.cleanup_remote_backup()
+            return local_path
         finally:
             if self.ssh:
                 self.ssh.close()
