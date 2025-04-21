@@ -1,3 +1,5 @@
+import logging
+import sys
 from pathlib import Path
 from typing import Optional
 from pydantic import Field
@@ -25,3 +27,12 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
