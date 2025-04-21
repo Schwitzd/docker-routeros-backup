@@ -1,7 +1,5 @@
 """Application settings loaded from environment variables"""
 
-import logging
-import sys
 from pathlib import Path
 from typing import Optional
 from pydantic import Field
