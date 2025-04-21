@@ -36,10 +36,20 @@ class RouterOSBackup:
         logger.info("SSH connection established with %s", self.settings.router_host)
 
     def run_backup_command(self):
-        """Execute the RouterOS backup command via SSH."""
-        command = f'/system backup save name={self.backup_name} password="{self.settings.backup_password}"'
-        logger.info("Running backup command: %s", command)
+        """Execute the RouterOS backup command via SSH (encrypted or unencrypted)."""
+        if self.settings.backup_password:
+            command = (
+                f'/system backup save name={self.backup_name} '
+                f'password="{self.settings.backup_password}"'
+            )
+            logger.info("Running encrypted backup command.")
+        else:
+            command = f'/system backup save name={self.backup_name}'
+            logger.warning(
+                "Running unencrypted backup command — this is insecure and not recommended!"
+            )
 
+        logger.debug("Executing command: %s", command)
         stdin, stdout, stderr = self.ssh.exec_command(command)
         stdout.channel.recv_exit_status()
 

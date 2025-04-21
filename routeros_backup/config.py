@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     router_user: str = Field(..., env="ROUTER_USER")
     ssh_key_path: Path = Field(..., env="SSH_KEY_PATH")
     backupname_prefix: str = Field(default="routeros", env="BACKUPNAME_PREFIX")
-    backup_password: str = Field(..., env="BACKUP_PASSWORD")
+    backup_password: str = Field(default="", env="BACKUP_PASSWORD")
 
     # S3-compatible storage
     s3_endpoint: str = Field(..., env="S3_ENDPOINT")
