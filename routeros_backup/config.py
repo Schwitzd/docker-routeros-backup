@@ -1,3 +1,5 @@
+"""Application settings loaded from environment variables"""
+
 import logging
 import sys
 from pathlib import Path
@@ -27,12 +29,3 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
