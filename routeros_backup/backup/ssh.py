@@ -1,3 +1,5 @@
+"""SSH-based logic to create and download MikroTik RouterOS backups."""
+
 import logging
 from pathlib import Path
 from datetime import datetime, timezone
@@ -5,81 +7,78 @@ import paramiko
 from routeros_backup.config import Settings
 
 logger = logging.getLogger(__name__)
-settings = Settings()
 
 
-def generate_backup_name() -> str:
-    """Generate a backup filename based on current date."""
-    return f"{settings.backupname_prefix}-{datetime.now(timezone.utc).date()}.backup"
+class RouterOSBackup:
+    """Handles SSH connection, backup creation, and download from MikroTik RouterOS."""
 
+    def __init__(self, settings: Settings):
+        self.settings = settings
+        self.ssh = None
+        self.backup_name = self._generate_backup_name()
 
-def create_ssh_client() -> paramiko.SSHClient:
-    """Create and return a configured SSH client."""
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    def _generate_backup_name(self) -> str:
+        """Generate a backup filename based on current date."""
+        return f"{self.settings.backupname_prefix}-{datetime.now(timezone.utc).date()}.backup"
 
-    ssh.connect(
-        hostname=settings.router_host,
-        username=settings.router_user,
-        key_filename=str(settings.ssh_key_path),
-        look_for_keys=False,
-        allow_agent=False,
-    )
+    def connect(self):
+        """Establish an SSH connection to the MikroTik router."""
+        self.ssh = paramiko.SSHClient()
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    return ssh
+        self.ssh.connect(
+            hostname=self.settings.router_host,
+            username=self.settings.router_user,
+            key_filename=str(self.settings.ssh_key_path),
+            look_for_keys=False,
+            allow_agent=False,
+        )
+        logger.info("SSH connection established with %s", self.settings.router_host)
 
+    def run_backup_command(self):
+        """Execute the RouterOS backup command via SSH."""
+        command = f'/system backup save name={self.backup_name} password="{self.settings.backup_password}"'
+        logger.info("Running backup command: %s", command)
 
-def run_backup_command(ssh: paramiko.SSHClient, backup_name: str):
-    """Run the MikroTik backup command."""
-    command = f'/system backup save name={backup_name} password="{settings.backup_password}"'
-    logger.info("Running backup command: %s", command)
-    stdin, stdout, stderr = ssh.exec_command(command)
-    stdout.channel.recv_exit_status()
+        stdin, stdout, stderr = self.ssh.exec_command(command)
+        stdout.channel.recv_exit_status()
 
-    err_output = stderr.read().decode()
-    if err_output:
-        raise RuntimeError(f"RouterOS backup command failed: {err_output.strip()}")
+        err_output = stderr.read().decode()
+        if err_output:
+            raise RuntimeError(f"RouterOS backup command failed: {err_output.strip()}")
 
+    def download_backup_file(self) -> Path:
+        """Download the generated .backup file to the local /tmp/ folder."""
+        sftp = self.ssh.open_sftp()
+        remote_path = f"/{self.backup_name}"
+        local_path = Path(f"/tmp/{self.backup_name}")
 
-def download_backup_file(ssh: paramiko.SSHClient, backup_name: str) -> Path:
-    """Download the .backup file from the router to the local /tmp/ folder."""
-    sftp = ssh.open_sftp()
-    remote_path = f"/{backup_name}"
-    local_path = Path(f"/tmp/{backup_name}")
+        logger.info("Attempting to download backup file from %s to %s", remote_path, local_path)
 
-    logger.info("Attempting to download backup file from %s to %s", remote_path, local_path)
+        try:
+            sftp.get(remote_path, str(local_path))
+            logger.info("Download completed successfully: %s", local_path)
+        except FileNotFoundError:
+            logger.error("Backup file not found on router: %s", remote_path)
+            raise
+        except PermissionError:
+            logger.error("Permission denied when accessing: %s", remote_path)
+            raise
+        except Exception as e:
+            logger.exception("Unexpected error while downloading backup file: %s", e)
+            raise
+        finally:
+            sftp.close()
 
-    try:
-        sftp.get(remote_path, str(local_path))
-        logger.info("Download completed successfully: %s", local_path)
-    except FileNotFoundError:
-        logger.error("Backup file not found on router: %s", remote_path)
-        raise
-    except PermissionError:
+        return local_path
 
-        logger.error("Permission denied when accessing: %s", remote_path)
-        raise
-    except Exception as e:
-        logger.exception("Unexpected error while downloading backup file: %s", e)
-        raise
-    finally:
-        sftp.close()
-
-    return local_path
-
-
-def perform_backup() -> Path:
-    """Main entrypoint to create and download a MikroTik backup."""
-    backup_name = generate_backup_name()
-
-    logger.info("Connecting to MikroTik at %s...", settings.router_host)
-    ssh = create_ssh_client()
-
-    try:
-        run_backup_command(ssh, backup_name)
-        local_backup_path = download_backup_file(ssh, backup_name)
-    finally:
-        ssh.close()
-
-    logger.info("Backup completed: %s", local_backup_path)
-    return local_backup_path
+    def perform(self) -> Path:
+        """Main entrypoint: connect, create backup, and download it."""
+        self.connect()
+        try:
+            self.run_backup_command()
+            return self.download_backup_file()
+        finally:
+            if self.ssh:
+                self.ssh.close()
+                logger.info("SSH connection closed")

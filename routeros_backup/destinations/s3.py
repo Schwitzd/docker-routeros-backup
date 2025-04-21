@@ -1,3 +1,5 @@
+"""S3Uploader class to handle uploading backups to S3-compatible storage"""
+
 import logging
 from pathlib import Path
 import boto3
@@ -12,12 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 class S3Uploader:
+    """S3-compatible storage class"""
     def __init__(self, settings: Settings):
         self.settings = settings
         self.client = None
 
     def connect(self):
-        """Initialize the S3 client with proper error handling."""
+        """Initialize the S3 client with proper error handling"""
         try:
             self.client = boto3.client(
                 "s3",
@@ -63,7 +66,7 @@ class S3Uploader:
 
 
     def upload(self, file_path: Path):
-        """Upload the given backup file to S3-compatible storage using put_object."""
+        """Upload the given backup file to S3-compatible storage using put_object"""
         if self.client is None:
             raise RuntimeError("S3 client not initialized. Call connect() first.")
 
