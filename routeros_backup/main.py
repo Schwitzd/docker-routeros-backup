@@ -4,7 +4,7 @@ import logging
 from routeros_backup.config import Settings
 from routeros_backup.logger import configure_logging
 from routeros_backup.backup.ssh import RouterOSBackup
-from routeros_backup.destinations.s3 import S3Uploader
+from routeros_backup.destinations.s3 import S3Manager
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +19,10 @@ def main():
 
     if settings.backup_dest_type == "s3":
         logger.info("Uploading backup to S3-compatible storage...")
-        uploader = S3Uploader(settings)
+        uploader = S3Manager(settings)
         uploader.connect()
         uploader.upload(backup_path)
+        uploader.apply_retention_policy()
     else:
         raise ValueError(f"Unsupported backup_dest_type: {settings.backup_dest_type}")
 

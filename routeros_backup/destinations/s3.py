@@ -13,7 +13,7 @@ from routeros_backup.config import Settings
 logger = logging.getLogger(__name__)
 
 
-class S3Uploader:
+class S3Manager:
     """S3-compatible storage class"""
     def __init__(self, settings: Settings):
         self.settings = settings
@@ -87,3 +87,45 @@ class S3Uploader:
         except Exception as err:
             logger.exception("Unexpected error during S3 upload.")
             raise RuntimeError("Unexpected error during S3 upload") from err
+
+
+    def apply_retention_policy(self):
+        """Apply retention policy by keeping only the latest N backup files."""
+        if not self.settings.retention_points:
+            logger.info("No retention policy configured, skipping cleanup.")
+            return
+
+        retention_points = self.settings.retention_points
+
+        logger.info(
+            "Applying retention policy: keeping the latest %d backup(s)", retention_points
+        )
+
+        try:
+            response = self.client.list_objects_v2(
+                Bucket=self.settings.s3_bucket,
+                Prefix=self.settings.s3_prefix
+            )
+
+            backups = response.get("Contents", [])
+            if not backups:
+                logger.info("No backups found in bucket, skipping cleanup.")
+                return
+
+            # Sort backups by LastModified descending (newest first)
+            backups.sort(key=lambda obj: obj["LastModified"], reverse=True)
+
+            # Determine old backups to delete
+            old_backups = backups[retention_points:]
+
+            for backup in old_backups:
+                key = backup["Key"]
+                logger.info("Deleting old backup: %s (last modified %s)", key, backup["LastModified"])
+                self.client.delete_object(
+                    Bucket=self.settings.s3_bucket,
+                    Key=key
+                )
+
+        except Exception as err:
+            logger.exception("Failed to apply retention policy.")
+            raise RuntimeError("Retention policy application failed.") from err
