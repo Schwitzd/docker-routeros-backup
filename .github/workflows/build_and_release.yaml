@@ -33,13 +33,6 @@ jobs:
         run: |
           npx semantic-release --ci
 
-      - name: Save Version to File
-        run: |
-          echo "${{ steps.semantic_release.outputs.version }}" > assets/version.txt
-          git add assets/version.txt
-          git commit -m "chore(release): update version to ${{ steps.semantic_release.outputs.version }}"
-          git push origin main
-
   release:
     name: Release Docker Image
     runs-on: ubuntu-latest
