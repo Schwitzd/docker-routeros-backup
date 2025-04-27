@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # General settings
     backup_dest_type: str = Field(default="s3", env="BACKUP_DEST_TYPE")
-    retention_days: Optional[int] = Field(default=None, env="RETENTION_DAYS")
+    retention_points: Optional[int] = Field(default=None, env="RETENTION_POINTS")
 
     class Config:
         env_file = ".env"
