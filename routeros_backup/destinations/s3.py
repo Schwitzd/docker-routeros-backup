@@ -1,4 +1,4 @@
-"""S3Uploader class to handle uploading backups to S3-compatible storage"""
+"""S3Manager class to handle uploading and managing backups in S3-compatible storage."""
 
 import logging
 from pathlib import Path
@@ -14,13 +14,14 @@ logger = logging.getLogger(__name__)
 
 
 class S3Manager:
-    """S3-compatible storage class"""
+    """S3-compatible storage management class."""
+
     def __init__(self, settings: Settings):
         self.settings = settings
         self.client = None
 
     def connect(self):
-        """Initialize the S3 client with proper error handling"""
+        """Initialize the S3 client with proper error handling."""
         try:
             self.client = boto3.client(
                 "s3",
@@ -28,7 +29,6 @@ class S3Manager:
                 aws_access_key_id=self.settings.s3_access_key,
                 aws_secret_access_key=self.settings.s3_secret_key,
             )
-
             # Trigger a lightweight call to validate connection
             self.client.list_buckets()
             logger.debug("S3 client initialized and verified.")
@@ -43,30 +43,17 @@ class S3Manager:
             raise RuntimeError("Failed to connect to the S3 endpoint. Check DNS and port.") from err
 
         except ClientError as err:
-            code = err.response["Error"].get("Code", "Unknown")
-            message = err.response["Error"].get("Message", "Unknown error")
-            request_id = err.response.get("ResponseMetadata", {}).get("RequestId", "N/A")
-            http_code = err.response.get("ResponseMetadata", {}).get("HTTPStatusCode", "N/A")
-
-            logger.error("Request ID: %s | HTTP Status Code: %s", request_id, http_code)
-            logger.error("S3 ClientError [%s]: %s", code, message)
-
-            if code == "AccessDenied":
-                logger.error("Access denied: check your S3 credentials and bucket policy.")
-            elif code == "InvalidArgument":
-                logger.error("Invalid argument: possibly using console/UI port instead of API port.")
-            elif code == "InvalidAccessKeyId":
-                logger.error("InvalidAccessKeyId: the S3 access key is incorrect or does not exist.")
-
-            raise RuntimeError(f"S3 upload failed: {message}") from err
+            self._handle_client_error(err, "connect")
+            raise RuntimeError(
+                f"S3 connection failed: {err.response['Error'].get('Message', 'Unknown error')}"
+            ) from err
 
         except Exception as err:
             logger.exception("Unexpected error during S3 client initialization.")
             raise RuntimeError("Unexpected error during S3 connection setup.") from err
 
-
     def upload(self, file_path: Path):
-        """Upload the given backup file to S3-compatible storage using put_object"""
+        """Upload the given backup file to S3-compatible storage using put_object."""
         if self.client is None:
             raise RuntimeError("S3 client not initialized. Call connect() first.")
 
@@ -87,7 +74,6 @@ class S3Manager:
         except Exception as err:
             logger.exception("Unexpected error during S3 upload.")
             raise RuntimeError("Unexpected error during S3 upload") from err
-
 
     def apply_retention_policy(self):
         """Apply retention policy by keeping only the latest N backup files."""
@@ -126,6 +112,29 @@ class S3Manager:
                     Key=key
                 )
 
+        except ClientError as err:
+            self._handle_client_error(err, "retention")
+            raise RuntimeError(
+                f"S3 retention failed: {err.response['Error'].get('Message', 'Unknown error')}"
+            ) from err
+
         except Exception as err:
             logger.exception("Failed to apply retention policy.")
             raise RuntimeError("Retention policy application failed.") from err
+
+    def _handle_client_error(self, err: ClientError, context: str):
+        """Handle S3 ClientError with detailed logging."""
+        code = err.response["Error"].get("Code", "Unknown")
+        message = err.response["Error"].get("Message", "Unknown error")
+        request_id = err.response.get("ResponseMetadata", {}).get("RequestId", "N/A")
+        http_code = err.response.get("ResponseMetadata", {}).get("HTTPStatusCode", "N/A")
+
+        logger.error("[%s] S3 ClientError %s: %s", context, code, message)
+        logger.error("[%s] Request ID: %s | HTTP Status Code: %s", context, request_id, http_code)
+
+        if code == "AccessDenied":
+            logger.error("[%s] Access denied: check your S3 credentials and bucket policy.", context)
+        elif code == "InvalidArgument":
+            logger.error("[%s] Invalid argument: possibly using console/UI port instead of API port.", context)
+        elif code == "InvalidAccessKeyId":
+            logger.error("[%s] InvalidAccessKeyId: the S3 access key is incorrect or does not exist.", context)
