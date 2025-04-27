@@ -33,7 +33,7 @@ This image is intended to be run by an external scheduler such as **Kubernetes C
 | `S3_BUCKET`         | *(required)*  | Name of the target S3 bucket                                                                       |
 | `S3_PREFIX`         | `""`          | Optional path/prefix inside the bucket (e.g. `backups/`)                                           |
 | `BACKUP_DEST_TYPE`  | `s3`          | Destination backend type. Currently only `s3` is supported                                         |
-| `RETENTION_DAYS`    | *(optional)*  | Number of days to keep backups in S3. If unset, no pruning is performed                            |
+| `RETENTION_POINTS`  | *(optional)*  | Number of recent backups to retain. Older backups will be automatically deleted                    |
 
 ## Destination Backends
 
