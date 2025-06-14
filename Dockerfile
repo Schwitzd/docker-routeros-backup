@@ -1,45 +1,47 @@
 # --- Stage 1: Build Dependencies ---
-FROM python:3.13-alpine AS builder
+FROM python:3.13-slim-bookworm AS builder
 
 WORKDIR /app
 
-# Install build tools for cryptographic dependencies
-RUN apk add --no-cache --virtual .build-deps \
-    gcc musl-dev libffi-dev openssl-dev
+# Install build dependencies for cryptography and wheels
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gcc libffi-dev libssl-dev build-essential && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy Python dependencies
 COPY requirements.txt .
 
-# Install Python packages into a clean directory
-RUN pip install --prefix=/install --no-cache-dir -r requirements.txt && \
-    apk del .build-deps
+# Install dependencies into a clean directory
+RUN pip install --prefix=/install --no-cache-dir -r requirements.txt
 
 # --- Stage 2: Final Runtime Image ---
-FROM python:3.13-alpine
+FROM python:3.13-slim-bookworm
 
-# Create non-root user for security
-RUN addgroup -S backupgroup && adduser -S backupuser -G backupgroup
-
-# Install runtime libraries needed by paramiko + boto3
-RUN apk add --no-cache libffi libgcc libcrypto3 zlib
+# Create a non-root user for security
+RUN useradd -r -s /usr/sbin/nologin backupuser
 
 WORKDIR /app
+
+# Install only the required runtime libraries
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libssl3 && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
 
-# Copy app source
+# Copy application source code
 COPY . .
 
-# Set proper permissions
-RUN chown -R backupuser:backupgroup /app
+# Set permissions for the non-root user
+RUN chown -R backupuser:backupuser /app
 
-# Switch to non-root user
 USER backupuser
 
-# Set environment variables
+# Environment setup
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
-# Default execution
+# Default command
 CMD ["python", "-m", "routeros_backup.main"]
