@@ -20,20 +20,21 @@ This image is intended to be run by an external scheduler such as **Kubernetes C
 
 ## Environment Variables
 
-| Name                | Default       | Description                                                                                        |
-|---------------------|---------------|----------------------------------------------------------------------------------------------------|
-| `ROUTER_HOST`       | *(required)*  | IP or hostname of the MikroTik router                                                              |
-| `ROUTER_USER`       | *(required)*  | SSH username for connecting to the router                                                          |
-| `SSH_KEY_PATH`      | *(required)*  | Path to the private SSH key used for authentication                                                |
-| `BACKUPNAME_PREFIX` | `routeros`    | Prefix for the backup file name (e.g. `routeros-YYYY-MM-DD.backup`)                                |
-| `BACKUP_PASSWORD`   | `""`          | Optional password to encrypt the RouterOS `.backup` file. If empty, the backup will be unencrypted |
-| `S3_ENDPOINT`       | *(required)*  | Endpoint URL of the S3-compatible storage (e.g. MinIO, AWS S3)                                     |
-| `S3_ACCESS_KEY`     | *(required)*  | Access key for the S3-compatible storage                                                           |
-| `S3_SECRET_KEY`     | *(required)*  | Secret key for the S3-compatible storage                                                           |
-| `S3_BUCKET`         | *(required)*  | Name of the target S3 bucket                                                                       |
-| `S3_PREFIX`         | `""`          | Optional path/prefix inside the bucket (e.g. `backups/`)                                           |
-| `BACKUP_DEST_TYPE`  | `s3`          | Destination backend type. Currently only `s3` is supported                                         |
-| `RETENTION_POINTS`  | *(optional)*  | Number of recent backups to retain. Older backups will be automatically deleted                    |
+| Name                | Default      | Description                                                                                        |
+|---------------------|--------------|----------------------------------------------------------------------------------------------------|
+| `ROUTER_HOST`       | *(required)* | IP or hostname of the MikroTik router                                                              |
+| `ROUTER_USER`       | *(required)* | SSH username for connecting to the router                                                          |
+| `SSH_KEY_PATH`      | *(required)* | Path to the private SSH key used for authentication                                                |
+| `BACKUPNAME_PREFIX` | `routeros`   | Prefix for the backup file name (e.g. `routeros-YYYY-MM-DD.backup`)                                |
+| `BACKUP_PASSWORD`   | `""`         | Optional password to encrypt the RouterOS `.backup` file. If empty, the backup will be unencrypted |
+| `S3_ENDPOINT`       | *(required)* | Endpoint URL of the S3-compatible storage (e.g. MinIO, AWS S3)                                     |
+| `S3_REGION`         | `""`         | AWS or S3-compatible region                                                                        |
+| `S3_ACCESS_KEY`     | *(required)* | Access key for the S3-compatible storage                                                           |
+| `S3_SECRET_KEY`     | *(required)* | Secret key for the S3-compatible storage                                                           |
+| `S3_BUCKET`         | *(required)* | Name of the target S3 bucket                                                                       |
+| `S3_PREFIX`         | `""`         | Optional path/prefix inside the bucket (e.g. `backups/`)                                           |
+| `BACKUP_DEST_TYPE`  | `s3`         | Destination backend type. Currently only `s3` is supported                                         |
+| `RETENTION_POINTS`  | *(optional)* | Number of recent backups to retain. Older backups will be automatically deleted                    |
 
 ## Destination Backends
 

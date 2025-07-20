@@ -20,3 +20,6 @@ env/
 .dockerignore
 *.tar
 *.log
+
+# Exlude Semantic Release files
+.releaserc.json

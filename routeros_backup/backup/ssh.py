@@ -81,7 +81,7 @@ class RouterOSBackup:
             sftp.close()
 
         return local_path
-    
+
     def cleanup_remote_backup(self):
         """Remove the backup file from the MikroTik router to free up space."""
         command = f'/file remove {self.backup_name}'

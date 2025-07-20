@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 import boto3
+from botocore.config import Config
 from botocore.exceptions import (
     ClientError,
     NoCredentialsError,
@@ -23,12 +24,22 @@ class S3Manager:
     def connect(self):
         """Initialize the S3 client with proper error handling."""
         try:
+            is_custom_endpoint = "amazonaws.com" not in self.settings.s3_endpoint
+
+            config = Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"} if is_custom_endpoint else {}
+            )
+
             self.client = boto3.client(
                 "s3",
                 endpoint_url=self.settings.s3_endpoint,
                 aws_access_key_id=self.settings.s3_access_key,
                 aws_secret_access_key=self.settings.s3_secret_key,
+                region_name=self.settings.s3_region,
+                config=config,
             )
+
             # Trigger a lightweight call to validate connection
             self.client.list_buckets()
             logger.debug("S3 client initialized and verified.")

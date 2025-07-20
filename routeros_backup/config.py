@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     s3_secret_key: str = Field(..., env="S3_SECRET_KEY")
     s3_bucket: str = Field(..., env="S3_BUCKET")
     s3_prefix: str = Field(default="", env="S3_PREFIX")
+    s3_region: Optional[str] = Field(default=None, env="S3_REGION")
 
     # General settings
     backup_dest_type: str = Field(default="s3", env="BACKUP_DEST_TYPE")
