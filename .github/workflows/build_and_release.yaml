@@ -18,20 +18,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install Semantic-Release
-        run: npm install -g semantic-release @semantic-release/release-notes-generator @semantic-release/git @semantic-release/github semantic-release-gha-output commit-analyzer-fail-on-no-release
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
 
-      - name: Configure Git User
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Install dependencies
+        run: pip install python-semantic-release
 
-      - name: Run Semantic-Release and Capture Version
+      - name: Run semantic-release
         id: semantic_release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npx semantic-release --ci
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release version  --no-changelog
 
   release:
     name: Release Docker Image
