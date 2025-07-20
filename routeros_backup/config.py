@@ -2,7 +2,7 @@
 
 from pathlib import Path
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     # General settings
     backup_dest_type: str = Field(default="s3", env="BACKUP_DEST_TYPE")
     retention_points: Optional[int] = Field(default=None, env="RETENTION_POINTS")
+
+    @field_validator("s3_endpoint")
+    @classmethod
+    def validate_s3_endpoint_protocol(cls, value: str) -> str:
+        if not (value.startswith("http://") or value.startswith("https://")):
+            raise ValueError("S3_ENDPOINT must include a valid protocol (http:// or https://)")
+        return value
 
     class Config:
         env_file = ".env"
